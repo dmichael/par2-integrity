@@ -85,6 +85,15 @@ The `-v` flag overrides the read-only mount for that run only. Your `docker-comp
 
 Enable SSH access under Control Panel → Terminal & SNMP, then SSH into your NAS.
 
+### Installing git
+
+Synology doesn't ship git. Install it via the **SynoCommunity** package source:
+
+1. In Package Center → **Settings → Package Sources**, add: `https://packages.synocommunity.com`
+2. Install **Git** from the Community tab.
+
+Alternatively, install [Entware](https://github.com/Entware/Entware) and run `opkg install git`.
+
 ### DSM 7.2+ (Container Manager)
 
 **Prerequisite:** Install **Container Manager** from Package Center.
