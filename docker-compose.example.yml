@@ -1,0 +1,34 @@
+# Copy this file to docker-compose.yml and edit the volumes below.
+#
+#   cp docker-compose.example.yml docker-compose.yml
+#
+# Mount each directory you want to protect under /data/<label>:ro
+# Mount a persistent volume at /parity for the parity database and par2 files.
+
+services:
+  par2-integrity:
+    build: .
+    container_name: par2-integrity
+    restart: unless-stopped
+    environment:
+      - RUN_MODE=cron
+      - CRON_SCHEDULE=0 2 * * *
+      - PAR2_REDUNDANCY=10
+      - MIN_FILE_SIZE=4096
+      - LOG_LEVEL=INFO
+      - VERIFY_PERCENT=100
+      - EXCLUDE_PATTERNS=.DS_Store,Thumbs.db,*.tmp,*.partial
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      # Add your data directories here (read-only recommended):
+      #   - /path/to/photos:/data/photos:ro
+      #   - /path/to/documents:/data/documents:ro
+      #
+      # For repair, temporarily change :ro to :rw on the affected volume.
+
+      # Parity storage (must be read-write):
+      - /path/to/parity:/parity

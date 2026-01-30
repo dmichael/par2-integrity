@@ -1,0 +1,7 @@
+.git/
+.claude/
+tests/
+Makefile
+README.md
+*.md
+docker-compose*.yml
