@@ -17,7 +17,7 @@ services:
       - MIN_FILE_SIZE=4096
       - LOG_LEVEL=INFO
       - VERIFY_PERCENT=100
-      - EXCLUDE_PATTERNS=.DS_Store,Thumbs.db,*.tmp,*.partial,.parity
+      - EXCLUDE_PATTERNS=.DS_Store,Thumbs.db,*.tmp,*.partial,.parity,#recycle,#archive,#trash
     logging:
       driver: json-file
       options:
