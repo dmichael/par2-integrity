@@ -28,8 +28,11 @@ def cmd_scan(config: Config, manifest: Manifest):
     print_summary(stats)
     notify_webhook(config, stats)
 
-    if stats.files_damaged > 0:
-        log.warning("Damaged files detected: %d", stats.files_damaged)
+    if stats.files_damaged > 0 or stats.files_truncated > 0:
+        if stats.files_damaged > 0:
+            log.warning("Damaged files detected: %d", stats.files_damaged)
+        if stats.files_truncated > 0:
+            log.warning("Truncated files detected: %d", stats.files_truncated)
         return 1
     return 0
 
@@ -111,6 +114,13 @@ def cmd_report(config: Config, manifest: Manifest):
     if damaged:
         print(f"\n  Damaged files:")
         for f in damaged:
+            print(f"    - {f['data_root']}/{f['rel_path']}")
+
+    # List truncated files
+    truncated = by_status.get("truncated", [])
+    if truncated:
+        print(f"\n  Truncated files (restore from backup):")
+        for f in truncated:
             print(f"    - {f['data_root']}/{f['rel_path']}")
 
     print("=============================\n")

@@ -166,6 +166,9 @@ The next scan detects it's gone and removes its manifest entry. If no other trac
 **What happens when I rename or move a file?**
 The scan hashes the file at its new path, finds a matching content hash for a path that no longer exists on disk, and updates the manifest entry in place. No re-hashing of the content or parity regeneration occurs.
 
+**What happens when a file gets truncated to 0 bytes?**
+The scan detects the file still exists on disk but is below `MIN_FILE_SIZE`. Instead of treating it as deleted, the manifest entry is marked as `truncated` and parity is preserved. Truncated files cannot be repaired via par2 — a zero-byte file has lost 100% of its content, far exceeding any redundancy level. Restore from backup.
+
 **What happens when I modify a file?**
 The mtime/size change triggers a re-hash. If the content hash differs, the old parity is deleted (unless shared by duplicates) and new parity is created.
 

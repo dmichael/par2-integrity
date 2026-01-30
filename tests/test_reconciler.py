@@ -214,6 +214,46 @@ class TestDeletion(ReconcilerTestBase):
         mock_delete.assert_not_called()
 
 
+class TestTruncationDetection(ReconcilerTestBase):
+    @patch("par2integrity.reconciler.delete_parity")
+    def test_truncated_file_preserved_not_deleted(self, mock_delete):
+        """File exists on disk as 0 bytes, not in scan results.
+        Should be marked truncated, not deleted. Parity preserved."""
+        # Create the physical file (0 bytes — below MIN_FILE_SIZE)
+        data_dir = Path(self.config.data_root) / "photos"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        (data_dir / "zeroed.jpg").write_bytes(b"")
+
+        # Pre-populate manifest as if this file was previously tracked
+        self.manifest.upsert_file("photos", "zeroed.jpg", 100, 1000,
+                                  HASH_A, "p.par2")
+
+        # Empty scan — file exists on disk but filtered out by scanner
+        stats = reconcile(self.config, self.manifest, [])
+
+        self.assertEqual(stats.files_truncated, 1)
+        self.assertEqual(stats.files_deleted, 0)
+        mock_delete.assert_not_called()
+
+        rec = self.manifest.get_file("photos", "zeroed.jpg")
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec["status"], "truncated")
+
+    @patch("par2integrity.reconciler.delete_parity")
+    def test_truly_deleted_file_still_cleaned_up(self, mock_delete):
+        """File does not exist on disk. Should be deleted as before."""
+        self.manifest.upsert_file("photos", "gone.jpg", 100, 1000,
+                                  HASH_A, "p.par2")
+
+        # Empty scan — file is truly gone (no physical file)
+        stats = reconcile(self.config, self.manifest, [])
+
+        self.assertEqual(stats.files_deleted, 1)
+        self.assertEqual(stats.files_truncated, 0)
+        mock_delete.assert_called_once_with(self.config, HASH_A)
+        self.assertIsNone(self.manifest.get_file("photos", "gone.jpg"))
+
+
 class TestVerifyOnly(ReconcilerTestBase):
     @patch("par2integrity.reconciler.verify_parity", return_value="ok")
     @patch("par2integrity.reconciler.sha256_file", return_value=HASH_A)

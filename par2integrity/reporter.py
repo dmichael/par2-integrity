@@ -52,6 +52,7 @@ def print_summary(stats: RunStats):
     print(f"  Repaired:       {d['files_repaired']}")
     print(f"  Moved:          {d['files_moved']}")
     print(f"  Deleted:        {d['files_deleted']}")
+    print(f"  Truncated:      {d['files_truncated']}")
     if d["errors"]:
         print(f"  Errors:\n    {d['errors']}")
     print("==================================\n")

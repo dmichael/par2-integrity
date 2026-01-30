@@ -20,6 +20,7 @@ class RunStats:
         self.files_repaired = 0
         self.files_moved = 0
         self.files_deleted = 0
+        self.files_truncated = 0
         self.errors: list[str] = []
 
     def to_dict(self) -> dict:
@@ -31,6 +32,7 @@ class RunStats:
             "files_repaired": self.files_repaired,
             "files_moved": self.files_moved,
             "files_deleted": self.files_deleted,
+            "files_truncated": self.files_truncated,
             "errors": "\n".join(self.errors) if self.errors else None,
         }
 
@@ -137,19 +139,26 @@ def reconcile(config: Config, manifest: Manifest,
             else:
                 stats.errors.append(f"verify {result}: {fi.abs_path}")
 
-    # Phase 4: Detect deletions — manifest entries not seen on disk
+    # Phase 4: Detect deletions and truncations — manifest entries not seen on disk
     if not verify_only:
         all_manifest = manifest.get_all_files()
         for rec in all_manifest:
             key = (rec["data_root"], rec["rel_path"])
             if key not in seen_on_disk:
-                log.info("Deleted: %s/%s", rec["data_root"], rec["rel_path"])
-                # Clean up parity if no other files reference this hash
-                other_refs = manifest.get_files_by_hash(rec["content_hash"])
-                if len(other_refs) <= 1:
-                    delete_parity(config, rec["content_hash"])
-                manifest.delete_file(rec["id"])
-                stats.files_deleted += 1
+                abs_path = config.data_root / rec["data_root"] / rec["rel_path"]
+                if abs_path.exists():
+                    # File still on disk but filtered out (truncated below MIN_FILE_SIZE)
+                    log.warning("Truncated: %s/%s", rec["data_root"], rec["rel_path"])
+                    manifest.update_status(rec["id"], "truncated")
+                    stats.files_truncated += 1
+                else:
+                    # File truly gone from disk
+                    log.info("Deleted: %s/%s", rec["data_root"], rec["rel_path"])
+                    other_refs = manifest.get_files_by_hash(rec["content_hash"])
+                    if len(other_refs) <= 1:
+                        delete_parity(config, rec["content_hash"])
+                    manifest.delete_file(rec["id"])
+                    stats.files_deleted += 1
 
     return stats
 

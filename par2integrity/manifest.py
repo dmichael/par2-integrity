@@ -25,17 +25,18 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE INDEX IF NOT EXISTS idx_content_hash ON files(content_hash);
 
 CREATE TABLE IF NOT EXISTS runs (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    started_at     TEXT NOT NULL,
-    finished_at    TEXT,
-    files_scanned  INTEGER DEFAULT 0,
-    files_created  INTEGER DEFAULT 0,
-    files_verified INTEGER DEFAULT 0,
-    files_damaged  INTEGER DEFAULT 0,
-    files_repaired INTEGER DEFAULT 0,
-    files_moved    INTEGER DEFAULT 0,
-    files_deleted  INTEGER DEFAULT 0,
-    errors         TEXT
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at      TEXT NOT NULL,
+    finished_at     TEXT,
+    files_scanned   INTEGER DEFAULT 0,
+    files_created   INTEGER DEFAULT 0,
+    files_verified  INTEGER DEFAULT 0,
+    files_damaged   INTEGER DEFAULT 0,
+    files_repaired  INTEGER DEFAULT 0,
+    files_moved     INTEGER DEFAULT 0,
+    files_deleted   INTEGER DEFAULT 0,
+    files_truncated INTEGER DEFAULT 0,
+    errors          TEXT
 );
 """
 
@@ -51,6 +52,10 @@ class Manifest:
 
     def _init_schema(self):
         self.conn.executescript(SCHEMA_SQL)
+        # Migrate existing databases that lack the files_truncated column
+        cols = [row[1] for row in self.conn.execute("PRAGMA table_info(runs)").fetchall()]
+        if "files_truncated" not in cols:
+            self.conn.execute("ALTER TABLE runs ADD COLUMN files_truncated INTEGER DEFAULT 0")
         self.conn.commit()
 
     def close(self):
@@ -152,7 +157,8 @@ class Manifest:
             """UPDATE runs SET
                 finished_at = ?, files_scanned = ?, files_created = ?,
                 files_verified = ?, files_damaged = ?, files_repaired = ?,
-                files_moved = ?, files_deleted = ?, errors = ?
+                files_moved = ?, files_deleted = ?, files_truncated = ?,
+                errors = ?
                WHERE id = ?""",
             (
                 now,
@@ -163,6 +169,7 @@ class Manifest:
                 stats.get("files_repaired", 0),
                 stats.get("files_moved", 0),
                 stats.get("files_deleted", 0),
+                stats.get("files_truncated", 0),
                 stats.get("errors"),
                 run_id,
             ),
