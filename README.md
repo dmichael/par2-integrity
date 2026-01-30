@@ -66,16 +66,28 @@ docker compose run --rm -e RUN_MODE=manual par2-integrity report
 
 ## How repair works
 
-Data volumes are mounted read-only by default. To repair damaged files:
+Data volumes are mounted read-only by default. To repair, re-mount the affected volume as read-write with `-v`:
 
-1. Run `report` to see which files are damaged.
-2. Edit `docker-compose.yml` and change `:ro` to `:rw` on the affected volume.
-3. Run `repair`.
-4. Change the volume back to `:ro`.
+```sh
+# Check what's damaged
+docker compose run --rm -e RUN_MODE=manual par2-integrity report
+
+# Repair with the affected volume mounted read-write
+docker compose run --rm \
+  -v /path/to/photos:/data/photos:rw \
+  -e RUN_MODE=manual \
+  par2-integrity repair
+```
+
+The `-v` flag overrides the read-only mount for that run only. Your `docker-compose.yml` stays unchanged.
 
 ## Synology NAS
 
-SSH into your NAS and clone the repo:
+Enable SSH access under Control Panel → Terminal & SNMP, then SSH into your NAS.
+
+### DSM 7.2+ (Container Manager)
+
+**Prerequisite:** Install **Container Manager** from Package Center.
 
 ```sh
 cd /volume1/docker
@@ -86,11 +98,8 @@ cp docker-compose.example.yml docker-compose.yml
 sudo docker compose up --build -d
 ```
 
-Notes:
-
-- **`--build` is required** on first run and after `git pull` to rebuild the image.
-- **Older DSM versions** use `docker-compose` (hyphenated) instead of `docker compose`.
-- The container appears under **Container Manager** (or the Docker package on older DSM). Older DSM does not support Projects — the container is listed directly.
+- `--build` is required on first run and after updates to rebuild the image.
+- The container appears under **Container Manager → Container**. Project support varies by DSM version.
 - `restart: unless-stopped` keeps the container running across NAS reboots.
 - **Updating:**
   ```sh
@@ -98,6 +107,48 @@ Notes:
   git pull
   sudo docker compose up --build -d
   ```
+
+### DSM 6.x (Docker package)
+
+**Prerequisite:** Install the **Docker** package from Package Center.
+
+```sh
+cd /volume1/docker
+git clone https://github.com/dmichael/par2-integrity.git
+cd par2-integrity
+cp docker-compose.example.yml docker-compose.yml
+# Edit docker-compose.yml with your volume paths
+sudo docker-compose up --build -d
+```
+
+- DSM 6 uses `docker-compose` (hyphenated), not `docker compose`.
+- The container appears under **Docker → Container**. There is no Project support.
+- `restart: unless-stopped` keeps the container running across NAS reboots.
+- **Updating:**
+  ```sh
+  cd /volume1/docker/par2-integrity
+  git pull
+  sudo docker-compose up --build -d
+  ```
+
+## Performance
+
+Each scan has four phases with different costs:
+
+| Phase | What it does | I/O cost |
+|---|---|---|
+| **Walk** | `stat()` every file, compare mtime/size against manifest | Metadata only — lightweight |
+| **Hash** | SHA-256 files with changed mtime or size, and new files | Reads only changed files — skipped entirely when nothing changed |
+| **Verify** | `par2 verify` on unchanged files | Reads the full file from disk — this is the expensive phase |
+| **Cleanup** | Remove manifest entries for deleted files | None (manifest-only) |
+
+**First scan** is the most expensive: every file is new, so every file gets hashed and has par2 parity created. Parity creation is CPU-bound (par2cmdline-turbo uses SIMD) and I/O-bound (reads the file, writes par2 blocks).
+
+**Subsequent scans** are dominated by the verify phase. `par2 verify` reads the entire file to check it against its parity blocks — there's no cheaper way to detect bit rot. The walk and hash phases are near-free on a stable collection since the mtime/size check skips hashing for unchanged files.
+
+**Tuning with `VERIFY_PERCENT`:** Set this below 100 to verify only a random sample each scan. At `VERIFY_PERCENT=10`, each scan verifies 10% of unchanged files, achieving full coverage over roughly 10 scan cycles. This is the primary knob for controlling scan duration on large collections.
+
+**Monitoring:** Each scan logs a summary with file counts. Run `report` to see the current manifest state. Scan logs are written to `/parity/_logs/`.
 
 ## Design notes
 
