@@ -7,7 +7,7 @@ from pathlib import Path
 class Config:
     def __init__(self):
         self.run_mode = os.environ.get("RUN_MODE", "cron")
-        self.cron_schedule = os.environ.get("CRON_SCHEDULE", "0 2 * * *")
+        self.cron_schedule = os.environ.get("CRON_SCHEDULE", "0 2 1 * *")
         self.par2_redundancy = int(os.environ.get("PAR2_REDUNDANCY", "10"))
         self.min_file_size = int(os.environ.get("MIN_FILE_SIZE", "4096"))
         self.verify_percent = int(os.environ.get("VERIFY_PERCENT", "100"))

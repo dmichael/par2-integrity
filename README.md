@@ -23,7 +23,7 @@ All settings are environment variables set in `docker-compose.yml`:
 | Variable | Default | Description |
 |---|---|---|
 | `RUN_MODE` | `cron` | `cron` for scheduled scans, `manual` for one-shot CLI |
-| `CRON_SCHEDULE` | `0 2 * * *` | Cron expression (cron mode only) |
+| `CRON_SCHEDULE` | `0 2 1 * *` | Cron expression (cron mode only) |
 | `PAR2_REDUNDANCY` | `10` | Parity redundancy percentage |
 | `MIN_FILE_SIZE` | `4096` | Skip files smaller than this (bytes) |
 | `VERIFY_PERCENT` | `100` | Percentage of files to verify per scan |
