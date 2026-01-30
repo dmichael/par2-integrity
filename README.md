@@ -28,7 +28,7 @@ All settings are environment variables set in `docker-compose.yml`:
 | `MIN_FILE_SIZE` | `4096` | Skip files smaller than this (bytes) |
 | `VERIFY_PERCENT` | `100` | Percentage of files to verify per scan |
 | `LOG_LEVEL` | `INFO` | Python log level |
-| `EXCLUDE_PATTERNS` | `.DS_Store,Thumbs.db,*.tmp,*.partial` | Comma-separated fnmatch patterns to skip |
+| `EXCLUDE_PATTERNS` | `.DS_Store,Thumbs.db,*.tmp,*.partial,.parity` | Comma-separated fnmatch patterns to skip |
 | `NOTIFY_WEBHOOK` | _(empty)_ | URL to POST a JSON summary after each scan |
 
 ## Volume mounts

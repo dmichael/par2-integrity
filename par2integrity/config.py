@@ -14,7 +14,7 @@ class Config:
         self.log_level = os.environ.get("LOG_LEVEL", "INFO")
         self.notify_webhook = os.environ.get("NOTIFY_WEBHOOK", "")
 
-        raw_excludes = os.environ.get("EXCLUDE_PATTERNS", ".DS_Store,Thumbs.db,*.tmp,*.partial")
+        raw_excludes = os.environ.get("EXCLUDE_PATTERNS", ".DS_Store,Thumbs.db,*.tmp,*.partial,.parity")
         self.exclude_patterns = [p.strip() for p in raw_excludes.split(",") if p.strip()]
 
         self.data_root = Path(os.environ.get("DATA_ROOT", "/data"))
