@@ -150,6 +150,26 @@ Each scan has four phases with different costs:
 
 **Monitoring:** Each scan logs a summary with file counts. Run `report` to see the current manifest state. Scan logs are written to `/parity/_logs/`.
 
+## FAQ
+
+**What happens when I delete a file?**
+The next scan detects it's gone and removes its manifest entry. If no other tracked file shares the same content hash, the par2 parity files are deleted too. If duplicates exist, parity is preserved.
+
+**What happens when I rename or move a file?**
+The scan hashes the file at its new path, finds a matching content hash for a path that no longer exists on disk, and updates the manifest entry in place. No re-hashing of the content or parity regeneration occurs.
+
+**What happens when I modify a file?**
+The mtime/size change triggers a re-hash. If the content hash differs, the old parity is deleted (unless shared by duplicates) and new parity is created.
+
+**What happens when I add a new volume mount?**
+New files are picked up on the next scan. Each gets hashed and has parity created. If a file has the same content as one already tracked (e.g., copied from another volume), existing parity is reused.
+
+**What if the same file exists in multiple places?**
+Parity is keyed by content hash, so duplicates share a single set of par2 files. Deleting one copy doesn't affect parity as long as another copy is still tracked.
+
+**Does verify re-read every file?**
+Yes — `par2 verify` must read the file to check it against parity blocks. Use `VERIFY_PERCENT` to sample a subset per scan if this is too slow.
+
 ## Design notes
 
 - **Hash-based parity** — par2 files are keyed by content SHA-256, not path. Renamed or moved files reuse existing parity without regeneration.
