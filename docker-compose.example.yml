@@ -28,5 +28,6 @@ services:
       #   - /path/to/photos:/data/photos:ro
       #   - /path/to/documents:/data/documents:ro
 
-      # Parity storage (must be read-write):
-      - /path/to/parity:/parity
+      # Parity storage (must be read-write, Docker creates this automatically).
+      # This default is for Synology NAS — adjust the host path for other systems.
+      - /volume1/docker/parity:/parity

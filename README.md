@@ -101,13 +101,14 @@ cd /volume1/docker
 git clone https://github.com/dmichael/par2-integrity.git
 cd par2-integrity
 cp docker-compose.example.yml docker-compose.yml
-# Edit docker-compose.yml with your volume paths
+# Edit docker-compose.yml — add your data volumes
 sudo docker compose up --build -d
 ```
 
 - `--build` is required on first run and after updates to rebuild the image.
 - The container appears under **Container Manager → Container**. Project support varies by DSM version.
 - `restart: unless-stopped` keeps the container running across NAS reboots.
+- Parity data is stored at `/volume1/docker/parity` by default — Docker creates this on first run.
 - **Updating:**
   ```sh
   cd /volume1/docker/par2-integrity
@@ -124,7 +125,7 @@ cd /volume1/docker
 git clone https://github.com/dmichael/par2-integrity.git
 cd par2-integrity
 cp docker-compose.example.yml docker-compose.yml
-# Edit docker-compose.yml with your volume paths
+# Edit docker-compose.yml — add your data volumes
 sudo docker-compose up --build -d
 ```
 
