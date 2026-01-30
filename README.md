@@ -87,12 +87,10 @@ Enable SSH access under Control Panel → Terminal & SNMP, then SSH into your NA
 
 ### Installing git
 
-Synology doesn't ship git. Install it via the **SynoCommunity** package source:
+Synology doesn't ship git. Install it via [SynoCommunity](https://synocommunity.com):
 
 1. In Package Center → **Settings → Package Sources**, add: `https://packages.synocommunity.com`
 2. Install **Git** from the Community tab.
-
-Alternatively, install [Entware](https://github.com/Entware/Entware) and run `opkg install git`.
 
 ### DSM 7.2+ (Container Manager)
 
