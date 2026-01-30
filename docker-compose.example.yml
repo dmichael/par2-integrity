@@ -27,8 +27,6 @@ services:
       # Add your data directories here (read-only recommended):
       #   - /path/to/photos:/data/photos:ro
       #   - /path/to/documents:/data/documents:ro
-      #
-      # For repair, temporarily change :ro to :rw on the affected volume.
 
       # Parity storage (must be read-write):
       - /path/to/parity:/parity
