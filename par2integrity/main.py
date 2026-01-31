@@ -143,6 +143,14 @@ def main():
     config = Config()
     setup_logging(config)
 
+    log.info("Config: redundancy=%d%%, timeout=%ds, min_size=%d, max_size=%s, "
+             "verify=%d%%, exclude=%s",
+             config.par2_redundancy, config.par2_timeout,
+             config.min_file_size,
+             config.max_file_size if config.max_file_size else "unlimited",
+             config.verify_percent,
+             ",".join(config.exclude_patterns))
+
     if not args.command:
         parser.print_help()
         return 1
