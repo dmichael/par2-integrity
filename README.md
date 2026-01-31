@@ -22,8 +22,7 @@ After changing configuration or pulling updates:
 
 ```sh
 docker compose down
-docker compose build
-docker compose up -d
+docker compose up --build -d
 ```
 
 To check logs:
