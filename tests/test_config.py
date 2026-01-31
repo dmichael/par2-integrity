@@ -11,7 +11,8 @@ class TestConfigDefaults(unittest.TestCase):
     def setUp(self):
         # Clear any env vars that might interfere
         self._saved = {}
-        for key in ("RUN_MODE", "CRON_SCHEDULE", "PAR2_REDUNDANCY", "MIN_FILE_SIZE",
+        for key in ("RUN_MODE", "CRON_SCHEDULE", "PAR2_REDUNDANCY", "PAR2_TIMEOUT",
+                     "MIN_FILE_SIZE", "MAX_FILE_SIZE",
                      "VERIFY_PERCENT", "LOG_LEVEL", "NOTIFY_WEBHOOK", "EXCLUDE_PATTERNS",
                      "DATA_ROOT", "PARITY_ROOT"):
             self._saved[key] = os.environ.pop(key, None)
@@ -26,9 +27,11 @@ class TestConfigDefaults(unittest.TestCase):
     def test_defaults(self):
         cfg = Config()
         self.assertEqual(cfg.run_mode, "cron")
-        self.assertEqual(cfg.cron_schedule, "0 2 * * *")
+        self.assertEqual(cfg.cron_schedule, "0 2 1 * *")
         self.assertEqual(cfg.par2_redundancy, 10)
+        self.assertEqual(cfg.par2_timeout, 3600)
         self.assertEqual(cfg.min_file_size, 4096)
+        self.assertEqual(cfg.max_file_size, 53687091200)
         self.assertEqual(cfg.verify_percent, 100)
         self.assertEqual(cfg.log_level, "INFO")
         self.assertEqual(cfg.notify_webhook, "")

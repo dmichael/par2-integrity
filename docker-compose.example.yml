@@ -15,9 +15,10 @@ services:
       - CRON_SCHEDULE=0 2 1 * *
       - PAR2_REDUNDANCY=10
       - MIN_FILE_SIZE=4096
+      - MAX_FILE_SIZE=53687091200
       - LOG_LEVEL=INFO
       - VERIFY_PERCENT=100
-      - "EXCLUDE_PATTERNS=.DS_Store,Thumbs.db,*.tmp,*.partial,.parity,#recycle,#archive,#trash"
+      - "EXCLUDE_PATTERNS=.DS_Store,Thumbs.db,*.tmp,*.partial,.parity,#recycle,#archive,#trash,*.zip,*.tar,*.tar.gz,*.tgz,*.tar.bz2,*.tbz2,*.tar.xz,*.txz,*.rar,*.7z"
     logging:
       driver: json-file
       options:

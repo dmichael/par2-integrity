@@ -55,7 +55,7 @@ def create_parity(config: Config, source_file: Path, content_hash: str) -> bool:
             str(source_file),
         ]
 
-        result = _run_par2(args)
+        result = _run_par2(args, timeout=config.par2_timeout)
         if result.returncode == 0:
             # Move all generated par2 files to final location
             for f in Path(tmp_dir).iterdir():
@@ -65,6 +65,10 @@ def create_parity(config: Config, source_file: Path, content_hash: str) -> bool:
 
         log.error("Failed to create parity for %s (rc=%d): %s",
                   source_file, result.returncode, result.stderr.strip())
+        return False
+    except subprocess.TimeoutExpired:
+        log.error("Timed out creating parity for %s (timeout=%ds)",
+                  source_file, config.par2_timeout)
         return False
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -91,7 +95,12 @@ def verify_parity(config: Config, source_file: Path, content_hash: str) -> str:
         str(source_file),
     ]
 
-    result = _run_par2(args)
+    try:
+        result = _run_par2(args, timeout=config.par2_timeout)
+    except subprocess.TimeoutExpired:
+        log.error("Timed out verifying %s (timeout=%ds)",
+                  source_file, config.par2_timeout)
+        return "error"
     if result.returncode == 0:
         return "ok"
     # par2cmdline returns 1 for repairable damage, other codes for worse
@@ -123,7 +132,12 @@ def repair_file(config: Config, source_file: Path, content_hash: str) -> bool:
         str(source_file),
     ]
 
-    result = _run_par2(args)
+    try:
+        result = _run_par2(args, timeout=config.par2_timeout)
+    except subprocess.TimeoutExpired:
+        log.error("Timed out repairing %s (timeout=%ds)",
+                  source_file, config.par2_timeout)
+        return False
     if result.returncode == 0:
         log.info("Successfully repaired: %s", source_file)
         return True

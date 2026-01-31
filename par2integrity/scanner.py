@@ -73,6 +73,9 @@ def scan_data_roots(config: Config) -> list[FileInfo]:
                     continue
                 if st.st_size < config.min_file_size:
                     continue
+                if config.max_file_size and st.st_size > config.max_file_size:
+                    log.debug("Skipping (too large): %s (%d bytes)", full, st.st_size)
+                    continue
                 rel = str(full.relative_to(entry))
                 results.append(FileInfo(
                     abs_path=full,

@@ -9,12 +9,14 @@ class Config:
         self.run_mode = os.environ.get("RUN_MODE", "cron")
         self.cron_schedule = os.environ.get("CRON_SCHEDULE", "0 2 1 * *")
         self.par2_redundancy = int(os.environ.get("PAR2_REDUNDANCY", "10"))
+        self.par2_timeout = int(os.environ.get("PAR2_TIMEOUT", "3600"))
         self.min_file_size = int(os.environ.get("MIN_FILE_SIZE", "4096"))
+        self.max_file_size = int(os.environ.get("MAX_FILE_SIZE", "53687091200"))  # 50 GiB
         self.verify_percent = int(os.environ.get("VERIFY_PERCENT", "100"))
         self.log_level = os.environ.get("LOG_LEVEL", "INFO")
         self.notify_webhook = os.environ.get("NOTIFY_WEBHOOK", "")
 
-        raw_excludes = os.environ.get("EXCLUDE_PATTERNS", ".DS_Store,Thumbs.db,*.tmp,*.partial,.parity,#recycle,#archive,#trash")
+        raw_excludes = os.environ.get("EXCLUDE_PATTERNS", ".DS_Store,Thumbs.db,*.tmp,*.partial,.parity,#recycle,#archive,#trash,*.zip,*.tar,*.tar.gz,*.tgz,*.tar.bz2,*.tbz2,*.tar.xz,*.txz,*.rar,*.7z")
         self.exclude_patterns = [p.strip() for p in raw_excludes.split(",") if p.strip()]
 
         self.data_root = Path(os.environ.get("DATA_ROOT", "/data"))
