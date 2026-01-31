@@ -7,22 +7,23 @@ import unittest
 from pathlib import Path
 
 from par2integrity.config import Config
-from par2integrity.scanner import FileInfo, scan_data_roots, sha256_file, _should_exclude
+from par2integrity.scanner import scan_data_roots, sha256_file, should_exclude
+from tests.helpers import EnvSnapshot
 
 
 class TestShouldExclude(unittest.TestCase):
     def test_exact_match(self):
-        self.assertTrue(_should_exclude(".DS_Store", [".DS_Store"]))
+        self.assertTrue(should_exclude(".DS_Store", [".DS_Store"]))
 
     def test_glob_match(self):
-        self.assertTrue(_should_exclude("foo.tmp", ["*.tmp"]))
-        self.assertTrue(_should_exclude("data.partial", ["*.partial"]))
+        self.assertTrue(should_exclude("foo.tmp", ["*.tmp"]))
+        self.assertTrue(should_exclude("data.partial", ["*.partial"]))
 
     def test_no_match(self):
-        self.assertFalse(_should_exclude("photo.jpg", ["*.tmp", ".DS_Store"]))
+        self.assertFalse(should_exclude("photo.jpg", ["*.tmp", ".DS_Store"]))
 
     def test_empty_patterns(self):
-        self.assertFalse(_should_exclude("anything", []))
+        self.assertFalse(should_exclude("anything", []))
 
 
 class TestSha256File(unittest.TestCase):
@@ -52,10 +53,9 @@ class TestSha256File(unittest.TestCase):
 class TestScanDataRoots(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
-        # Patch config to use our tmpdir as data root
-        self._saved_env = {}
-        for key in ("DATA_ROOT", "PARITY_ROOT", "MIN_FILE_SIZE", "EXCLUDE_PATTERNS"):
-            self._saved_env[key] = os.environ.pop(key, None)
+        self._env = EnvSnapshot([
+            "DATA_ROOT", "PARITY_ROOT", "MIN_FILE_SIZE", "EXCLUDE_PATTERNS",
+        ])
 
         os.environ["DATA_ROOT"] = self.tmpdir
         os.environ["PARITY_ROOT"] = os.path.join(self.tmpdir, "_parity")
@@ -63,11 +63,7 @@ class TestScanDataRoots(unittest.TestCase):
         os.environ["EXCLUDE_PATTERNS"] = ".DS_Store,*.tmp"
 
     def tearDown(self):
-        for key, val in self._saved_env.items():
-            if val is not None:
-                os.environ[key] = val
-            else:
-                os.environ.pop(key, None)
+        self._env.restore()
 
     def _write_file(self, rel_path: str, content: bytes = b"x" * 100):
         full = Path(self.tmpdir) / rel_path
@@ -143,6 +139,20 @@ class TestScanDataRoots(unittest.TestCase):
         cfg = Config()
         results = scan_data_roots(cfg)
         self.assertEqual(results, [])
+
+    def test_excluded_top_level_dir_skipped(self):
+        """A top-level data root matching an exclude pattern should be skipped entirely."""
+        os.environ["EXCLUDE_PATTERNS"] = "#recycle"
+        self._write_file("#recycle/old.jpg")
+        self._write_file("photos/real.jpg")
+
+        cfg = Config()
+        results = scan_data_roots(cfg)
+        roots = {fi.data_root for fi in results}
+
+        self.assertEqual(len(results), 1)
+        self.assertNotIn("#recycle", roots)
+        self.assertIn("photos", roots)
 
 
 if __name__ == "__main__":

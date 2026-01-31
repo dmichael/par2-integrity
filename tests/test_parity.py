@@ -8,14 +8,13 @@ from unittest.mock import patch, MagicMock
 
 from par2integrity.config import Config
 from par2integrity.parity import create_parity, verify_parity, delete_parity
+from tests.helpers import EnvSnapshot
 
 
 class ParityTestBase(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
-        self._saved_env = {}
-        for key in ("DATA_ROOT", "PARITY_ROOT", "PAR2_REDUNDANCY"):
-            self._saved_env[key] = os.environ.pop(key, None)
+        self._env = EnvSnapshot(["DATA_ROOT", "PARITY_ROOT", "PAR2_REDUNDANCY"])
 
         os.environ["DATA_ROOT"] = os.path.join(self.tmpdir, "data")
         os.environ["PARITY_ROOT"] = os.path.join(self.tmpdir, "parity")
@@ -33,11 +32,7 @@ class ParityTestBase(unittest.TestCase):
         self.content_hash = "ab" * 32  # 64 hex chars
 
     def tearDown(self):
-        for key, val in self._saved_env.items():
-            if val is not None:
-                os.environ[key] = val
-            else:
-                os.environ.pop(key, None)
+        self._env.restore()
 
 
 class TestCreateParity(ParityTestBase):

@@ -5,24 +5,20 @@ import unittest
 from pathlib import Path
 
 from par2integrity.config import Config
+from tests.helpers import EnvSnapshot
 
 
 class TestConfigDefaults(unittest.TestCase):
     def setUp(self):
-        # Clear any env vars that might interfere
-        self._saved = {}
-        for key in ("RUN_MODE", "CRON_SCHEDULE", "PAR2_REDUNDANCY", "PAR2_TIMEOUT",
-                     "MIN_FILE_SIZE", "MAX_FILE_SIZE",
-                     "VERIFY_PERCENT", "LOG_LEVEL", "NOTIFY_WEBHOOK", "EXCLUDE_PATTERNS",
-                     "DATA_ROOT", "PARITY_ROOT"):
-            self._saved[key] = os.environ.pop(key, None)
+        self._env = EnvSnapshot([
+            "RUN_MODE", "CRON_SCHEDULE", "PAR2_REDUNDANCY", "PAR2_TIMEOUT",
+            "MIN_FILE_SIZE", "MAX_FILE_SIZE",
+            "VERIFY_PERCENT", "LOG_LEVEL", "NOTIFY_WEBHOOK", "EXCLUDE_PATTERNS",
+            "DATA_ROOT", "PARITY_ROOT",
+        ])
 
     def tearDown(self):
-        for key, val in self._saved.items():
-            if val is not None:
-                os.environ[key] = val
-            else:
-                os.environ.pop(key, None)
+        self._env.restore()
 
     def test_defaults(self):
         cfg = Config()
@@ -70,18 +66,49 @@ class TestConfigDefaults(unittest.TestCase):
         self.assertEqual(cfg.exclude_patterns, [])
 
 
-class TestConfigPathGeneration(unittest.TestCase):
+class TestConfigValidation(unittest.TestCase):
     def setUp(self):
-        self._saved = {}
-        for key in ("DATA_ROOT", "PARITY_ROOT"):
-            self._saved[key] = os.environ.pop(key, None)
+        self._env = EnvSnapshot([
+            "RUN_MODE", "CRON_SCHEDULE", "PAR2_REDUNDANCY", "PAR2_TIMEOUT",
+            "MIN_FILE_SIZE", "MAX_FILE_SIZE",
+            "VERIFY_PERCENT", "LOG_LEVEL", "NOTIFY_WEBHOOK", "EXCLUDE_PATTERNS",
+            "DATA_ROOT", "PARITY_ROOT",
+        ])
 
     def tearDown(self):
-        for key, val in self._saved.items():
-            if val is not None:
-                os.environ[key] = val
-            else:
-                os.environ.pop(key, None)
+        self._env.restore()
+
+    def test_non_integer_exits(self):
+        os.environ["PAR2_REDUNDANCY"] = "abc"
+        with self.assertRaises(SystemExit):
+            Config()
+
+    def test_below_min_exits(self):
+        os.environ["PAR2_REDUNDANCY"] = "0"
+        with self.assertRaises(SystemExit):
+            Config()
+
+    def test_above_max_exits(self):
+        os.environ["VERIFY_PERCENT"] = "200"
+        with self.assertRaises(SystemExit):
+            Config()
+
+    def test_boundary_values_accepted(self):
+        os.environ["PAR2_REDUNDANCY"] = "1"
+        os.environ["VERIFY_PERCENT"] = "0"
+        os.environ["MIN_FILE_SIZE"] = "0"
+        cfg = Config()
+        self.assertEqual(cfg.par2_redundancy, 1)
+        self.assertEqual(cfg.verify_percent, 0)
+        self.assertEqual(cfg.min_file_size, 0)
+
+
+class TestConfigPathGeneration(unittest.TestCase):
+    def setUp(self):
+        self._env = EnvSnapshot(["DATA_ROOT", "PARITY_ROOT"])
+
+    def tearDown(self):
+        self._env.restore()
 
     def test_par2_dir_for_hash(self):
         cfg = Config()

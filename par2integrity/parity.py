@@ -151,7 +151,6 @@ def delete_parity(config: Config, content_hash: str):
     """Remove par2 files for a given content hash."""
     par2_dir = config.par2_dir_for_hash(content_hash)
     par2_name = config.par2_name_for_hash(content_hash)
-    par2_base = par2_dir / par2_name
 
     # par2 creates: base.par2, base.vol000+01.par2, base.vol001+02.par2, etc.
     removed = 0

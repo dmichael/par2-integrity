@@ -2,7 +2,8 @@
 set -e
 
 RUN_MODE="${RUN_MODE:-cron}"
-CRON_SCHEDULE="${CRON_SCHEDULE:-0 2 * * *}"
+# Derive default schedule from Python config (single source of truth)
+CRON_SCHEDULE="${CRON_SCHEDULE:-$(python -c 'from par2integrity.config import Config; print(Config().cron_schedule)')}"
 
 if [ "$RUN_MODE" = "cron" ]; then
     echo "=== PAR2 Integrity: cron mode ==="

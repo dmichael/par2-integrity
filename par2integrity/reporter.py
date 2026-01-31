@@ -53,9 +53,13 @@ def print_summary(stats: RunStats):
     print(f"  Moved:          {d['files_moved']}")
     print(f"  Deleted:        {d['files_deleted']}")
     print(f"  Truncated:      {d['files_truncated']}")
+    if d.get("parity_recreated"):
+        print(f"  Parity re-created: {d['parity_recreated']}")
+    if d.get("orphan_parity_cleaned"):
+        print(f"  Orphan cleaned:    {d['orphan_parity_cleaned']}")
     if d["errors"]:
         print(f"  Errors:\n    {d['errors']}")
-    print("==================================\n")
+    print("==================================")
 
 
 def notify_webhook(config: Config, stats: RunStats):

@@ -140,6 +140,25 @@ class TestManifest(unittest.TestCase):
         all_files = self.m.get_all_files()
         self.assertEqual(len(all_files), 1)
 
+    def test_get_files_by_status(self):
+        self.m.upsert_file("photos", "a.jpg", 100, 1, "h1" + "0" * 62, "p1.par2",
+                           status="ok")
+        self.m.upsert_file("photos", "b.jpg", 100, 2, "h2" + "0" * 62, "p2.par2",
+                           status="damaged")
+        self.m.upsert_file("photos", "c.jpg", 100, 3, "h3" + "0" * 62, "p3.par2",
+                           status="repaired")
+        self.m.upsert_file("photos", "d.jpg", 100, 4, "h4" + "0" * 62, "p4.par2",
+                           status="ok")
+
+        damaged = self.m.get_files_by_status("damaged", "repaired")
+        self.assertEqual(len(damaged), 2)
+        statuses = {r["status"] for r in damaged}
+        self.assertEqual(statuses, {"damaged", "repaired"})
+
+    def test_get_files_by_status_empty(self):
+        self.m.upsert_file("photos", "a.jpg", 100, 1, "h" * 64, "p.par2", status="ok")
+        self.assertEqual(self.m.get_files_by_status("damaged"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

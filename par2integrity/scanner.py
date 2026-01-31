@@ -36,7 +36,7 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def _should_exclude(name: str, patterns: list[str]) -> bool:
+def should_exclude(name: str, patterns: list[str]) -> bool:
     return any(fnmatch(name, p) for p in patterns)
 
 
@@ -54,16 +54,19 @@ def scan_data_roots(config: Config) -> list[FileInfo]:
         if not entry.is_dir():
             continue
         root_label = entry.name
+        if should_exclude(root_label, config.exclude_patterns):
+            log.debug("Skipping excluded data root: %s", root_label)
+            continue
         log.info("Scanning data root: %s", root_label)
         count = 0
         for dirpath, dirnames, filenames in os.walk(entry):
             # Filter excluded directories in-place
             dirnames[:] = [
                 d for d in dirnames
-                if not _should_exclude(d, config.exclude_patterns)
+                if not should_exclude(d, config.exclude_patterns)
             ]
             for fname in sorted(filenames):
-                if _should_exclude(fname, config.exclude_patterns):
+                if should_exclude(fname, config.exclude_patterns):
                     continue
                 full = Path(dirpath) / fname
                 try:

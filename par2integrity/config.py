@@ -1,18 +1,33 @@
 """Environment variable loading and defaults."""
 
 import os
+import sys
 from pathlib import Path
+
+
+def _int_env(name: str, default: int, *, min_val: int | None = None,
+             max_val: int | None = None) -> int:
+    raw = os.environ.get(name, str(default))
+    try:
+        val = int(raw)
+    except ValueError:
+        sys.exit(f"Invalid {name}={raw!r} — expected an integer")
+    if min_val is not None and val < min_val:
+        sys.exit(f"Invalid {name}={val} — must be >= {min_val}")
+    if max_val is not None and val > max_val:
+        sys.exit(f"Invalid {name}={val} — must be <= {max_val}")
+    return val
 
 
 class Config:
     def __init__(self):
         self.run_mode = os.environ.get("RUN_MODE", "cron")
         self.cron_schedule = os.environ.get("CRON_SCHEDULE", "0 2 1 * *")
-        self.par2_redundancy = int(os.environ.get("PAR2_REDUNDANCY", "10"))
-        self.par2_timeout = int(os.environ.get("PAR2_TIMEOUT", "3600"))
-        self.min_file_size = int(os.environ.get("MIN_FILE_SIZE", "4096"))
-        self.max_file_size = int(os.environ.get("MAX_FILE_SIZE", "53687091200"))  # 50 GiB
-        self.verify_percent = int(os.environ.get("VERIFY_PERCENT", "100"))
+        self.par2_redundancy = _int_env("PAR2_REDUNDANCY", 10, min_val=1, max_val=100)
+        self.par2_timeout = _int_env("PAR2_TIMEOUT", 3600, min_val=0)
+        self.min_file_size = _int_env("MIN_FILE_SIZE", 4096, min_val=0)
+        self.max_file_size = _int_env("MAX_FILE_SIZE", 53687091200, min_val=0)  # 50 GiB default
+        self.verify_percent = _int_env("VERIFY_PERCENT", 100, min_val=0, max_val=100)
         self.log_level = os.environ.get("LOG_LEVEL", "INFO")
         self.notify_webhook = os.environ.get("NOTIFY_WEBHOOK", "")
 
