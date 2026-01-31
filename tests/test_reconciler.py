@@ -88,8 +88,9 @@ class TestUnchangedFiles(ReconcilerTestBase):
         self.assertEqual(stats.files_damaged, 0)
         mock_verify.assert_called_once()
 
+    @patch("par2integrity.reconciler.sha256_file", return_value=HASH_B)
     @patch("par2integrity.reconciler.verify_parity", return_value="damaged")
-    def test_unchanged_file_damaged(self, mock_verify):
+    def test_unchanged_file_damaged(self, mock_verify, mock_hash):
         self.manifest.upsert_file("photos", "img.jpg", 100, 1000,
                                   HASH_A, "par2name.par2")
         fi = self._make_file_info("photos", "img.jpg", size=100, mtime_ns=1000)
@@ -465,6 +466,40 @@ class TestVerifyPercent(ReconcilerTestBase):
 
         # With 50%, should verify ~5 files (sampling is random but bounded)
         self.assertEqual(stats.files_verified, 5)
+
+
+class TestDamagedHashFallback(ReconcilerTestBase):
+    """Phase 3 hash-check fallback: par2 filename mismatch causes false
+    'damaged' results for deduped/renamed files. The reconciler now hashes
+    the file to confirm before marking it damaged."""
+
+    @patch("par2integrity.reconciler.sha256_file", return_value=HASH_A)
+    @patch("par2integrity.reconciler.verify_parity", return_value="damaged")
+    def test_damaged_false_positive_corrected_by_hash(self, mock_verify, mock_hash):
+        """verify returns 'damaged' but hash matches manifest → not damaged."""
+        self.manifest.upsert_file("photos", "img.jpg", 100, 1000,
+                                  HASH_A, "par2name.par2")
+        fi = self._make_file_info("photos", "img.jpg", size=100, mtime_ns=1000)
+        stats = reconcile(self.config, self.manifest, [fi])
+
+        self.assertEqual(stats.files_verified, 1)
+        self.assertEqual(stats.files_damaged, 0)
+        rec = self.manifest.get_file("photos", "img.jpg")
+        self.assertEqual(rec["status"], "ok")
+
+    @patch("par2integrity.reconciler.sha256_file", return_value=HASH_B)
+    @patch("par2integrity.reconciler.verify_parity", return_value="damaged")
+    def test_damaged_confirmed_by_hash_mismatch(self, mock_verify, mock_hash):
+        """verify returns 'damaged' and hash doesn't match → genuinely damaged."""
+        self.manifest.upsert_file("photos", "img.jpg", 100, 1000,
+                                  HASH_A, "par2name.par2")
+        fi = self._make_file_info("photos", "img.jpg", size=100, mtime_ns=1000)
+        stats = reconcile(self.config, self.manifest, [fi])
+
+        self.assertEqual(stats.files_verified, 1)
+        self.assertEqual(stats.files_damaged, 1)
+        rec = self.manifest.get_file("photos", "img.jpg")
+        self.assertEqual(rec["status"], "damaged")
 
 
 if __name__ == "__main__":

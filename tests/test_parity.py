@@ -147,6 +147,59 @@ class TestVerifyParity(ParityTestBase):
         self.assertEqual(result, "missing_parity")
 
 
+class TestVerifyFilenameMismatch(ParityTestBase):
+    """Parity is keyed by content hash: duplicates and renamed files share
+    the same par2 data.  But par2 embeds the original source filename during
+    creation.  When a different file (same hash, different name) is verified,
+    par2 can't match the filename and returns exit code 1, which
+    verify_parity interprets as 'damaged' — a false positive."""
+
+    @patch("par2integrity.parity._run_par2")
+    def test_dedup_verify_filename_mismatch(self, mock_run):
+        stored_source_name = None
+
+        def fake_par2(args, **kwargs):
+            nonlocal stored_source_name
+            cmd = args[1]  # "create" or "verify"
+
+            if cmd == "create":
+                # par2 records the source filename during creation
+                stored_source_name = Path(args[-1]).name
+                for arg in args:
+                    if arg.endswith(".par2"):
+                        Path(arg).write_bytes(b"fake par2")
+                        break
+                return MagicMock(returncode=0, stdout="", stderr="")
+
+            if cmd == "verify":
+                # par2 matches by stored filename — mismatch → exit code 1
+                source_name = Path(args[-1]).name
+                rc = 0 if source_name == stored_source_name else 1
+                return MagicMock(returncode=rc, stdout="", stderr="")
+
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        mock_run.side_effect = fake_par2
+
+        original = self.source_dir / "IMG_1234.JPG"
+        original.write_bytes(b"photo content")
+        duplicate = self.source_dir / "IMG_5678.JPG"
+        duplicate.write_bytes(b"photo content")
+
+        # Create parity for original — par2 stores "IMG_1234.JPG"
+        self.assertTrue(create_parity(self.config, original, self.content_hash))
+
+        # Verify original — filename matches stored name — OK
+        self.assertEqual(
+            verify_parity(self.config, original, self.content_hash), "ok")
+
+        # Verify duplicate — filename mismatch — false positive
+        result = verify_parity(self.config, duplicate, self.content_hash)
+        self.assertEqual(result, "damaged",
+            "False positive: identical content reported as damaged because "
+            "par2 stored 'IMG_1234.JPG' but verified 'IMG_5678.JPG'")
+
+
 class TestDeleteParity(ParityTestBase):
     def test_deletes_all_par2_files(self):
         par2_dir = self.config.par2_dir_for_hash(self.content_hash)

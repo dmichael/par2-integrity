@@ -129,16 +129,34 @@ def reconcile(config: Config, manifest: Manifest,
             sample_size = max(1, len(unchanged) * config.verify_percent // 100)
             to_verify = random.sample(unchanged, sample_size)
 
+        total = len(to_verify)
+        log.info("Verifying %d file%s...", total, "s" if total != 1 else "")
         with manifest.transaction():
             for fi, rec in to_verify:
                 result = verify_parity(config, fi.abs_path, rec["content_hash"])
                 stats.files_verified += 1
+                if stats.files_verified % 100 == 0:
+                    log.info("Verified %d / %d files", stats.files_verified, total)
                 if result == "ok":
                     manifest.mark_verified(rec["id"])
                 elif result == "damaged":
-                    stats.files_damaged += 1
-                    manifest.update_status(rec["id"], "damaged")
-                    log.warning("DAMAGED: %s/%s", fi.data_root, fi.rel_path)
+                    # Confirm with hash — par2 may report false positive due
+                    # to filename mismatch (dedup / rename)
+                    try:
+                        content_hash = sha256_file(fi.abs_path)
+                    except OSError as e:
+                        stats.errors.append(f"hash error confirming damage: {fi.abs_path}: {e}")
+                        stats.files_damaged += 1
+                        manifest.update_status(rec["id"], "damaged")
+                        continue
+                    if content_hash == rec["content_hash"]:
+                        log.info("Parity filename mismatch (not damaged): %s/%s",
+                                 fi.data_root, fi.rel_path)
+                        manifest.mark_verified(rec["id"])
+                    else:
+                        stats.files_damaged += 1
+                        manifest.update_status(rec["id"], "damaged")
+                        log.warning("DAMAGED: %s/%s", fi.data_root, fi.rel_path)
                 elif result == "missing_parity":
                     if verify_only:
                         log.warning("Missing parity (verify-only, cannot re-create): %s/%s",
