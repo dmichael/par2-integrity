@@ -16,6 +16,22 @@ cp docker-compose.example.yml docker-compose.yml
 docker compose up --build -d
 ```
 
+## Rebuilding and restarting
+
+After changing configuration or pulling updates:
+
+```sh
+docker compose down
+docker compose build
+docker compose up -d
+```
+
+To check logs:
+
+```sh
+docker compose logs -f par2-integrity
+```
+
 ## Configuration
 
 All settings are environment variables set in `docker-compose.yml`:
@@ -25,10 +41,12 @@ All settings are environment variables set in `docker-compose.yml`:
 | `RUN_MODE` | `cron` | `cron` for scheduled scans, `manual` for one-shot CLI |
 | `CRON_SCHEDULE` | `0 2 1 * *` | Cron expression (cron mode only) |
 | `PAR2_REDUNDANCY` | `10` | Parity redundancy percentage |
+| `PAR2_TIMEOUT` | `3600` | Timeout in seconds for each par2 operation |
 | `MIN_FILE_SIZE` | `4096` | Skip files smaller than this (bytes) |
+| `MAX_FILE_SIZE` | `53687091200` | Skip files larger than this (50 GiB). Set to `0` for no limit |
 | `VERIFY_PERCENT` | `100` | Percentage of files to verify per scan |
 | `LOG_LEVEL` | `INFO` | Python log level |
-| `EXCLUDE_PATTERNS` | `.DS_Store,Thumbs.db,*.tmp,*.partial,.parity,#recycle,#archive,#trash` | Comma-separated fnmatch patterns to skip |
+| `EXCLUDE_PATTERNS` | `.DS_Store,Thumbs.db,*.tmp,*.partial,.parity,#recycle,#archive,#trash,*.zip,*.tar,*.tar.gz,*.tgz,*.tar.bz2,*.tbz2,*.tar.xz,*.txz,*.rar,*.7z` | Comma-separated fnmatch patterns to skip |
 | `NOTIFY_WEBHOOK` | _(empty)_ | URL to POST a JSON summary after each scan |
 
 ## Volume mounts
